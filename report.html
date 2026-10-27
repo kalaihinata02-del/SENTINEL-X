@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Internship Project Report - SENTINEL-X</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 12mm 15mm 12mm 15mm;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            background: #ffffff;
+            font-size: 9.5pt;
+            line-height: 1.38;
+        }
+        .header {
+            border-bottom: 2px solid #0284c7;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .header-title {
+            font-size: 15pt;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.02em;
+        }
+        .header-subtitle {
+            font-size: 8.5pt;
+            color: #0284c7;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 2px;
+        }
+        .badge {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 8pt;
+            font-weight: 700;
+        }
+        h2 {
+            font-size: 10pt;
+            font-weight: 700;
+            color: #0f172a;
+            border-left: 3px solid #0284c7;
+            padding-left: 6px;
+            margin-top: 9px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        p {
+            margin-bottom: 5px;
+            text-align: justify;
+            color: #334155;
+        }
+        ul, ol {
+            margin-left: 14px;
+            margin-bottom: 5px;
+        }
+        li {
+            margin-bottom: 2.5px;
+            color: #334155;
+        }
+        strong {
+            color: #0f172a;
+        }
+        .tech-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 10px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-size: 8.5pt;
+        }
+        .tech-item span {
+            font-weight: 700;
+            color: #0369a1;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 4px;
+            margin-bottom: 6px;
+            font-size: 8.5pt;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 4px 6px;
+            text-align: left;
+        }
+        th {
+            background: #f1f5f9;
+            color: #0f172a;
+            font-weight: 700;
+        }
+        td {
+            color: #334155;
+        }
+        .footer {
+            margin-top: 10px;
+            padding-top: 6px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 7.5pt;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <div class="header-title">SENTINEL-X | ONE-PAGE PROJECT REPORT</div>
+            <div class="header-subtitle">Enterprise Detection Engineering & SOC Automation Platform</div>
+        </div>
+        <div class="badge">ACADEMIC & INDUSTRIAL REPORT</div>
+    </div>
+
+    <h2>1. Project Title</h2>
+    <p><strong>SENTINEL-X: Enterprise-Style Detection Engineering & SOC Automation (SIEM/SOAR) Platform</strong></p>
+
+    <h2>2. Why Did You Choose This Project?</h2>
+    <p>
+        Modern enterprise Security Operations Centers (SOCs) ingest massive volumes of heterogeneous logs (Linux, Windows Active Directory, network firewalls). Manually analyzing disparate logs causes severe alert fatigue and elevates Mean Time to Detect (MTTD) and Respond (MTTR). I chose this project to gain comprehensive, hands-on experience in <strong>Detection Engineering, SIEM normalization, and SOAR automation</strong>—the core disciplines utilized by Tier-1 defense teams (CrowdStrike, Splunk, Palo Alto Cortex). Building this platform directly bridges theoretical cybersecurity concepts with adversary behavior through the <strong>MITRE ATT&CK® framework</strong>.
+    </p>
+
+    <h2>3. Technologies & Tools Used</h2>
+    <div class="tech-grid">
+        <div class="tech-item"><span>Backend:</span> Python 3.15, FastAPI (Asynchronous REST API)</div>
+        <div class="tech-item"><span>Log Schema:</span> OCSF / Elastic Common Schema (ECS)</div>
+        <div class="tech-item"><span>Detection Rules:</span> YAML Sigma-style rules, Sliding Windows</div>
+        <div class="tech-item"><span>Database:</span> SQLite with persistent JSON indexing</div>
+        <div class="tech-item"><span>Threat Intel:</span> Offline GeoIP, ASN, C2 DB, CMDB Asset Inventory</div>
+        <div class="tech-item"><span>Frontend UI:</span> Cyber SOC Dashboard (Tailwind CSS, Chart.js)</div>
+    </div>
+
+    <h2>4. How You Completed the Project (Approach & Methodology)</h2>
+    <p>I structured and executed the platform through a modular 6-stage engineering lifecycle:</p>
+    <ul>
+        <li><strong>Ingestion & Unified Normalization:</strong> Engineered regex & key-value parsers for Linux <code>auth.log</code>, Windows Security Events (<code>4624</code>, <code>4625</code>, <code>4688</code>), and Zeek/Web logs, transforming raw text into standardized <code>NormalizedEvent</code> objects.</li>
+        <li><strong>Rule Authoring & Stateful Detection:</strong> Authored 9 multi-domain rules covering Authentication, Endpoint, and Network vectors with an in-memory sliding window manager supporting both immediate triggers and thresholding (&ge; 5 events / 60s).</li>
+        <li><strong>Automated Context Enrichment:</strong> Integrated an enrichment engine computing composite risk scores (0–100) using Threat Intelligence (Tor exit nodes, C2 indicators) and internal CMDB asset criticality (Tier-0 Domain Controller vs Workstation).</li>
+        <li><strong>SOC Incident Management:</strong> Structured an automated ticketing engine generating <code>INC-2026-XXXX</code> tickets with correlated raw evidence, chronological attack timelines, and MITRE ATT&CK tags.</li>
+        <li><strong>SOAR Playbook Automation:</strong> Implemented automated containment playbooks (Perimeter Firewall IP drops, EDR network host isolation, Active Directory account lockout) with comprehensive audit trails.</li>
+        <li><strong>SOC Operations Dashboard & Simulator:</strong> Developed an interactive dark-mode UI with live metrics, MITRE heatmap, and a 1-click Attack Simulator replaying real-world attack scenarios.</li>
+    </ul>
+
+    <h2>5. What You Learned (Key Technical Skills & Concepts Gained)</h2>
+    <ul>
+        <li><strong>Detection Engineering Lifecycle:</strong> Practical rule creation, threshold tuning, and false-positive suppression.</li>
+        <li><strong>Stateful Stream Correlation:</strong> Managing in-memory sliding time windows and cooldowns to mitigate alert storms.</li>
+        <li><strong>MITRE ATT&CK® Mapping:</strong> Mapping signatures to tactics (T1110.001 Brute Force, T1059.001 PowerShell, T1003.001 LSASS).</li>
+        <li><strong>SOAR & Incident Response:</strong> Closed-loop playbooks slashing containment response times from hours to milliseconds.</li>
+    </ul>
+
+    <h2>6. Challenges Faced & Solutions</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 25%;">Challenge</th>
+                <th style="width: 35%;">Root Cause</th>
+                <th style="width: 40%;">Engineering Solution</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Disparate Log Formats</strong></td>
+                <td>Heterogeneous syntax across Windows EVTX, Linux syslog, and Zeek.</td>
+                <td>Developed lookahead regex parsers normalizing raw strings into OCSF standard schema.</td>
+            </tr>
+            <tr>
+                <td><strong>Alert Fatigue & Floods</strong></td>
+                <td>High-frequency attacks triggered duplicate tickets per attempt.</td>
+                <td>Engineered sliding-window state pruning with a 30-second entity suppression window.</td>
+            </tr>
+            <tr>
+                <td><strong>Python 3.15 C Extensions</strong></td>
+                <td>Standard PyYAML lacked pre-built binary wheels on Windows.</td>
+                <td>Integrated pure-Python StrictYAML, ensuring zero-compiler portability and stability.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>7. Final Outcome</h2>
+    <p>
+        Successfully engineered a fully functional, self-contained <strong>Enterprise SOC & Detection Platform</strong> with 100% automated <code>Log &rarr; Detection &rarr; Alert &rarr; Enrichment &rarr; Incident Ticket &rarr; SOAR Containment</code> pipeline, an interactive dark-mode Web Operations Center running at <code>http://localhost:8000</code>, a 1-click attack simulation center, and <strong>11/11 automated unit and integration tests passing in under 1 second</strong>.
+    </p>
+
+    <div class="footer">
+        <span>Student / Intern Submission &bull; Cybersecurity & SOC Detection Engineering</span>
+        <span>Generated: October 2026 &bull; Verified & Tested</span>
+    </div>
+
+</body>
+</html>

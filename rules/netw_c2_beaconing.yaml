@@ -1,0 +1,33 @@
+id: NETW-002
+title: Command & Control (C2) Beaconing Activity
+description: Detects outbound communication patterns matching known C2 beaconing signatures, cobalt strike listeners, or traffic to blacklisted C2 IP addresses.
+category: network
+severity: critical
+status: enabled
+author: SOC Detection Engineering Team
+mitre_attack:
+  tactic: Command and Control
+  technique_id: T1071.001
+  technique_name: Web Protocols C2
+detection:
+  condition_logic: any
+  conditions:
+    - field: dest_ip
+      operator: equals
+      value: "103.224.182.245"
+    - field: dest_port
+      operator: equals
+      value: 4444
+    - field: http_uri
+      operator: contains
+      value: /api/v1/heartbeat
+  threshold: 1
+  time_window_seconds: 60
+  group_by:
+    - src_ip
+recommended_response: "CRITICAL: Immediate perimeter block of destination IP. Quarantine the initiating endpoint immediately. Dump network flow captures and inspect local process responsible for the socket."
+soar_playbook: block_ip
+tags:
+  - c2
+  - beaconing
+  - command_and_control

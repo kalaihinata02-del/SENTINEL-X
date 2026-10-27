@@ -1,0 +1,27 @@
+id: NETW-001
+title: Network Port Scanning Reconnaissance
+description: Detects rapid network connection attempts across multiple ports or endpoints originating from a single IP address.
+category: network
+severity: medium
+status: enabled
+author: SOC Detection Engineering Team
+mitre_attack:
+  tactic: Discovery
+  technique_id: T1046
+  technique_name: Network Service Discovery
+detection:
+  condition_logic: all
+  conditions:
+    - field: event_category
+      operator: equals
+      value: network
+  threshold: 5
+  time_window_seconds: 30
+  group_by:
+    - src_ip
+recommended_response: Inspect scanning source IP reputation. If external or unauthorized internal asset, apply automated firewall drop rule and monitor for subsequent exploitation attempts.
+soar_playbook: block_ip
+tags:
+  - port_scan
+  - discovery
+  - reconnaissance

@@ -1,0 +1,33 @@
+id: ENDP-004
+title: Shadow Copies Deletion (Ransomware Preparation)
+description: Detects the deletion of volume shadow copies via vssadmin or wbadmin, a high-fidelity indicator of imminent ransomware encryption.
+category: endpoint
+severity: critical
+status: enabled
+author: SOC Detection Engineering Team
+mitre_attack:
+  tactic: Impact
+  technique_id: T1490
+  technique_name: Inhibit System Recovery
+detection:
+  condition_logic: any
+  conditions:
+    - field: process_command_line
+      operator: contains
+      value: vssadmin delete shadows
+    - field: process_command_line
+      operator: contains
+      value: resize shadowstorage
+    - field: process_command_line
+      operator: contains
+      value: recoveryenabled no
+  threshold: 1
+  time_window_seconds: 30
+  group_by:
+    - hostname
+recommended_response: "CRITICAL INCIDENT: Immediate emergency host isolation. Terminate parent process trees. Alert Incident Response Commander and verify offline immutable backup integrity."
+soar_playbook: isolate_host
+tags:
+  - ransomware
+  - vssadmin
+  - impact

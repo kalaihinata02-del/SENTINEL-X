@@ -1,0 +1,36 @@
+id: ENDP-002
+title: LSASS Memory Credential Dumping (Mimikatz Activity)
+description: Detects command line invocations or tooling associated with LSASS memory dumping, such as Mimikatz, ProcDump targeting LSASS, or sekurlsa module commands.
+category: endpoint
+severity: critical
+status: enabled
+author: SOC Detection Engineering Team
+mitre_attack:
+  tactic: Credential Access
+  technique_id: T1003.001
+  technique_name: LSASS Memory Dumping
+detection:
+  condition_logic: any
+  conditions:
+    - field: process_command_line
+      operator: contains
+      value: mimikatz
+    - field: process_command_line
+      operator: contains
+      value: sekurlsa
+    - field: process_command_line
+      operator: contains
+      value: lsass
+    - field: process_command_line
+      operator: contains
+      value: procdump
+  threshold: 1
+  time_window_seconds: 30
+  group_by:
+    - hostname
+recommended_response: "CRITICAL: Immediate host isolation required. Assumed credential compromise across all accounts logged into this endpoint. Force immediate password reset for all Domain Admins and review Active Directory Kerberos ticket activity."
+soar_playbook: isolate_host
+tags:
+  - credential_dumping
+  - mimikatz
+  - lsass

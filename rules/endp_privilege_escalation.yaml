@@ -1,0 +1,33 @@
+id: ENDP-003
+title: Unauthorized Local Privilege Escalation
+description: Detects suspicious administrative group modification or unauthorized sudo execution commands on endpoints.
+category: endpoint
+severity: high
+status: enabled
+author: SOC Detection Engineering Team
+mitre_attack:
+  tactic: Privilege Escalation
+  technique_id: T1078.003
+  technique_name: Local Accounts & Privilege Elevation
+detection:
+  condition_logic: any
+  conditions:
+    - field: action
+      operator: equals
+      value: privilege_elevation
+    - field: process_command_line
+      operator: contains
+      value: administrators /add
+    - field: process_command_line
+      operator: contains
+      value: /etc/sudoers
+  threshold: 1
+  time_window_seconds: 60
+  group_by:
+    - actor_user
+recommended_response: Verify if user submitted an approved IT Change Request for elevated access. If unauthorized, immediately revoke user active sessions and audit recent commands executed under elevated context.
+soar_playbook: revoke_user
+tags:
+  - privilege_escalation
+  - sudo
+  - local_admin

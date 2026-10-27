@@ -1,0 +1,30 @@
+id: NETW-003
+title: DNS Tunneling & Covert Data Exfiltration
+description: Detects abnormal DNS queries containing high-entropy payloads or queries routed to known DNS tunneling exfiltration domains.
+category: network
+severity: high
+status: enabled
+author: SOC Detection Engineering Team
+mitre_attack:
+  tactic: Exfiltration
+  technique_id: T1071.004
+  technique_name: DNS Protocol Exfiltration
+detection:
+  condition_logic: any
+  conditions:
+    - field: domain
+      operator: contains
+      value: evil-c2-domain.com
+    - field: domain
+      operator: contains
+      value: dnstunnel
+  threshold: 1
+  time_window_seconds: 60
+  group_by:
+    - src_ip
+recommended_response: Sinkhole malicious domain on internal DNS resolvers. Trace originating internal IP, extract cached DNS query logs, and inspect endpoint for staged exfiltration archives.
+soar_playbook: block_ip
+tags:
+  - dns_tunneling
+  - exfiltration
+  - network

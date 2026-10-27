@@ -1,0 +1,30 @@
+id: AUTH-001
+title: SSH Brute Force Authentication Attack
+description: Detects repeated failed SSH authentication attempts from a single source IP indicating credential brute forcing.
+category: authentication
+severity: high
+status: enabled
+author: SOC Detection Engineering Team
+mitre_attack:
+  tactic: Credential Access
+  technique_id: T1110.001
+  technique_name: Password Guessing / Brute Force
+detection:
+  condition_logic: all
+  conditions:
+    - field: action
+      operator: equals
+      value: logon_failed
+    - field: event_category
+      operator: equals
+      value: authentication
+  threshold: 5
+  time_window_seconds: 60
+  group_by:
+    - src_ip
+recommended_response: Identify source IP. Verify if attempts hit valid corporate accounts. Block offending IP on perimeter firewall and check for any subsequent successful logon from this IP.
+soar_playbook: block_ip
+tags:
+  - ssh
+  - brute_force
+  - authentication

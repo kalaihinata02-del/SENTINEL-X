@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENTINEL-X | Enterprise SOC & Detection Engineering Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            900: '#070b14',
+                            800: '#0d1527',
+                            700: '#14203b',
+                            600: '#1f2f54',
+                            accent: '#06b6d4',
+                            glow: '#38bdf8',
+                            danger: '#ef4444',
+                            warning: '#f59e0b',
+                            success: '#10b981'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-[#070b14] text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
+
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-slate-800 bg-[#0d1527]/90 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="h-10 w-10 rounded-lg bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                    <i class="fa-solid fa-shield-halved text-xl text-white"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-black tracking-wider text-lg text-white font-mono">SENTINEL<span class="text-cyan-400">-X</span></span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/60 font-mono">ENTERPRISE SOC</span>
+                    </div>
+                    <div class="text-[11px] text-slate-400">Detection Engineering & Automated SOAR Pipeline</div>
+                </div>
+            </div>
+
+            <!-- Global Stats Bar -->
+            <div class="hidden md:flex items-center space-x-6 text-xs">
+                <div class="flex items-center space-x-2 bg-slate-900/80 px-3 py-1.5 rounded-md border border-slate-800">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-slate-400">Engine:</span>
+                    <span class="font-mono text-emerald-400 font-semibold" id="top-engine-status">LIVE NORMALIZED</span>
+                </div>
+                <div class="flex items-center space-x-2 bg-slate-900/80 px-3 py-1.5 rounded-md border border-slate-800">
+                    <i class="fa-solid fa-bolt text-amber-400"></i>
+                    <span class="text-slate-400">Rules Active:</span>
+                    <span class="font-mono text-white font-bold" id="top-rules-count">9</span>
+                </div>
+                <div class="flex items-center space-x-2 bg-slate-900/80 px-3 py-1.5 rounded-md border border-slate-800">
+                    <i class="fa-solid fa-lock text-rose-400"></i>
+                    <span class="text-slate-400">Containments:</span>
+                    <span class="font-mono text-rose-400 font-bold" id="top-containments-count">0</span>
+                </div>
+            </div>
+
+            <!-- Quick Action Refresh -->
+            <div class="flex items-center space-x-3">
+                <button onclick="refreshAllData()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition" title="Refresh Dashboard">
+                    <i class="fa-solid fa-arrows-rotate" id="refresh-icon"></i>
+                </button>
+                <button onclick="switchTab('simulator')" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center space-x-1.5 transition">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Simulate Attack</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="max-w-7xl mx-auto px-4 flex space-x-1 overflow-x-auto text-sm border-t border-slate-800/60">
+            <button onclick="switchTab('overview')" id="tab-btn-overview" class="tab-btn active px-4 py-2.5 font-medium border-b-2 border-cyan-400 text-cyan-400 flex items-center space-x-2">
+                <i class="fa-solid fa-chart-line text-xs"></i>
+                <span>SOC Overview</span>
+            </button>
+            <button onclick="switchTab('incidents')" id="tab-btn-incidents" class="tab-btn px-4 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2">
+                <i class="fa-solid fa-triangle-exclamation text-xs"></i>
+                <span>Incident Queue</span>
+                <span id="badge-open-incidents" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-rose-500/20 text-rose-400 font-bold">0</span>
+            </button>
+            <button onclick="switchTab('simulator')" id="tab-btn-simulator" class="tab-btn px-4 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2">
+                <i class="fa-solid fa-crosshairs text-xs"></i>
+                <span>Attack Simulator</span>
+            </button>
+            <button onclick="switchTab('rules')" id="tab-btn-rules" class="tab-btn px-4 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2">
+                <i class="fa-solid fa-code-branch text-xs"></i>
+                <span>Detection Rules</span>
+            </button>
+            <button onclick="switchTab('logs')" id="tab-btn-logs" class="tab-btn px-4 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2">
+                <i class="fa-solid fa-list-check text-xs"></i>
+                <span>Live SIEM Logs</span>
+            </button>
+            <button onclick="switchTab('soar')" id="tab-btn-soar" class="tab-btn px-4 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2">
+                <i class="fa-solid fa-shield-virus text-xs"></i>
+                <span>SOAR Containment</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+
+        <!-- TAB 1: OVERVIEW -->
+        <section id="tab-overview" class="space-y-6">
+            <!-- Pipeline Flow Diagram Card -->
+            <div class="bg-[#0d1527] border border-slate-800 rounded-xl p-4 shadow-xl">
+                <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center justify-between">
+                    <span><i class="fa-solid fa-diagram-project text-cyan-400 mr-2"></i>End-to-End Pipeline Architecture</span>
+                    <span class="text-[11px] text-cyan-400 font-mono">OCSF/ECS Unified Schema</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-center text-xs">
+                    <div class="p-3 bg-slate-900/90 rounded-lg border border-slate-800/80">
+                        <div class="text-slate-400 mb-1"><i class="fa-solid fa-database text-blue-400 mr-1"></i> 1. Log Ingestion</div>
+                        <div class="font-bold text-slate-200">Linux, Windows, Zeek, Web</div>
+                        <div class="text-[10px] text-slate-500 mt-1">Multi-format parsers</div>
+                    </div>
+                    <div class="p-3 bg-slate-900/90 rounded-lg border border-slate-800/80">
+                        <div class="text-slate-400 mb-1"><i class="fa-solid fa-arrows-split-up-and-left text-cyan-400 mr-1"></i> 2. Normalization</div>
+                        <div class="font-bold text-slate-200">Standard Schema</div>
+                        <div class="text-[10px] text-slate-500 mt-1">Unified OCSF Event</div>
+                    </div>
+                    <div class="p-3 bg-slate-900/90 rounded-lg border border-slate-800/80">
+                        <div class="text-slate-400 mb-1"><i class="fa-solid fa-filter text-amber-400 mr-1"></i> 3. Detection Engine</div>
+                        <div class="font-bold text-slate-200">YAML Rules & State</div>
+                        <div class="text-[10px] text-slate-500 mt-1">Sliding Time Window</div>
+                    </div>
+                    <div class="p-3 bg-slate-900/90 rounded-lg border border-slate-800/80">
+                        <div class="text-slate-400 mb-1"><i class="fa-solid fa-microchip text-purple-400 mr-1"></i> 4. Auto-Enrichment</div>
+                        <div class="font-bold text-slate-200">Threat Intel & CMDB</div>
+                        <div class="text-[10px] text-slate-500 mt-1">GeoIP, Asset Tier, User</div>
+                    </div>
+                    <div class="p-3 bg-slate-900/90 rounded-lg border border-slate-800/80 col-span-2 md:col-span-1">
+                        <div class="text-slate-400 mb-1"><i class="fa-solid fa-ticket text-rose-400 mr-1"></i> 5. SOAR & Incident</div>
+                        <div class="font-bold text-slate-200">Automated Mitigation</div>
+                        <div class="text-[10px] text-slate-500 mt-1">1-Click Containment</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI Counters -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-[#0d1527] border border-slate-800 p-4 rounded-xl shadow-lg relative overflow-hidden">
+                    <div class="absolute -right-3 -top-3 w-16 h-16 bg-blue-500/10 rounded-full blur-xl"></div>
+                    <div class="text-xs text-slate-400 flex justify-between items-center">
+                        <span>Ingested Logs</span>
+                        <i class="fa-solid fa-file-shield text-blue-400"></i>
+                    </div>
+                    <div class="text-2xl font-black text-white mt-2 font-mono" id="stat-total-logs">0</div>
+                    <div class="text-[11px] text-emerald-400 mt-1"><i class="fa-solid fa-arrow-trend-up"></i> Real-time normalized</div>
+                </div>
+
+                <div class="bg-[#0d1527] border border-slate-800 p-4 rounded-xl shadow-lg relative overflow-hidden">
+                    <div class="absolute -right-3 -top-3 w-16 h-16 bg-amber-500/10 rounded-full blur-xl"></div>
+                    <div class="text-xs text-slate-400 flex justify-between items-center">
+                        <span>Detection Alerts</span>
+                        <i class="fa-solid fa-bell text-amber-400"></i>
+                    </div>
+                    <div class="text-2xl font-black text-amber-400 mt-2 font-mono" id="stat-total-alerts">0</div>
+                    <div class="text-[11px] text-slate-400 mt-1">Rule correlation matches</div>
+                </div>
+
+                <div class="bg-[#0d1527] border border-slate-800 p-4 rounded-xl shadow-lg relative overflow-hidden">
+                    <div class="absolute -right-3 -top-3 w-16 h-16 bg-rose-500/10 rounded-full blur-xl"></div>
+                    <div class="text-xs text-slate-400 flex justify-between items-center">
+                        <span>Open Incidents</span>
+                        <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
+                    </div>
+                    <div class="text-2xl font-black text-rose-400 mt-2 font-mono" id="stat-open-incidents">0</div>
+                    <div class="text-[11px] text-rose-300/80 mt-1">Awaiting SOC analyst triage</div>
+                </div>
+
+                <div class="bg-[#0d1527] border border-slate-800 p-4 rounded-xl shadow-lg relative overflow-hidden">
+                    <div class="absolute -right-3 -top-3 w-16 h-16 bg-emerald-500/10 rounded-full blur-xl"></div>
+                    <div class="text-xs text-slate-400 flex justify-between items-center">
+                        <span>SOAR Containments</span>
+                        <i class="fa-solid fa-shield-virus text-emerald-400"></i>
+                    </div>
+                    <div class="text-2xl font-black text-emerald-400 mt-2 font-mono" id="stat-total-containments">0</div>
+                    <div class="text-[11px] text-slate-400 mt-1">Automated active blocks</div>
+                </div>
+            </div>
+
+            <!-- Charts & Heatmap Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- MITRE ATT&CK Matrix Card -->
+                <div class="lg:col-span-2 bg-[#0d1527] border border-slate-800 rounded-xl p-5 shadow-xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-white text-sm flex items-center space-x-2">
+                                <i class="fa-solid fa-cubes text-cyan-400"></i>
+                                <span>MITRE ATT&CK® Coverage & Detections</span>
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Real-time mapping of detected threats against adversary tactics</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 text-xs" id="mitre-tactics-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Incident Severity Distribution -->
+                <div class="bg-[#0d1527] border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-white text-sm flex items-center space-x-2 mb-1">
+                            <i class="fa-solid fa-chart-pie text-cyan-400"></i>
+                            <span>Incident Severity Breakdown</span>
+                        </h3>
+                        <p class="text-xs text-slate-400 mb-4">Distribution by risk level</p>
+                    </div>
+                    <div class="relative h-48 flex items-center justify-center">
+                        <canvas id="chart-severity"></canvas>
+                    </div>
+                    <div class="flex justify-around text-xs mt-3 pt-3 border-t border-slate-800 text-slate-400">
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-rose-500 mr-1.5"></span> Critical</span>
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-orange-500 mr-1.5"></span> High</span>
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-amber-500 mr-1.5"></span> Medium</span>
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-blue-500 mr-1.5"></span> Low</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Critical Incidents Quick View -->
+            <div class="bg-[#0d1527] border border-slate-800 rounded-xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-white text-sm flex items-center space-x-2">
+                        <i class="fa-solid fa-clock-rotate-left text-cyan-400"></i>
+                        <span>Recent Active Incident Tickets</span>
+                    </h3>
+                    <button onclick="switchTab('incidents')" class="text-xs text-cyan-400 hover:text-cyan-300">View All Incidents →</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900/80 text-slate-400 font-mono text-[11px] uppercase">
+                            <tr>
+                                <th class="p-3">Ticket ID</th>
+                                <th class="p-3">Severity</th>
+                                <th class="p-3">Incident Title</th>
+                                <th class="p-3">Target / Host</th>
+                                <th class="p-3">MITRE Tactic</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overview-recent-incidents" class="divide-y divide-slate-800 font-mono">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: INCIDENT QUEUE & INVESTIGATION -->
+        <section id="tab-incidents" class="space-y-6 hidden">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-ticket text-cyan-400"></i>
+                        <span>SOC Incident Management & Triage Workspace</span>
+                    </h2>
+                    <p class="text-xs text-slate-400">Enterprise security tickets with correlated evidence, timeline, threat intelligence, and SOAR response</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <select id="filter-incident-status" onchange="loadIncidents()" class="bg-slate-900 text-xs text-slate-200 border border-slate-800 rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500">
+                        <option value="all">All Statuses</option>
+                        <option value="open" selected>Open Only</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="mitigated">Mitigated</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Incidents Table -->
+            <div class="bg-[#0d1527] border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900/80 text-slate-400 font-mono uppercase text-[11px]">
+                            <tr>
+                                <th class="p-3.5">Ticket ID</th>
+                                <th class="p-3.5">Severity</th>
+                                <th class="p-3.5">Incident Title</th>
+                                <th class="p-3.5">Category</th>
+                                <th class="p-3.5">Primary Target</th>
+                                <th class="p-3.5">Analyst</th>
+                                <th class="p-3.5">Status</th>
+                                <th class="p-3.5 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="incidents-table-body" class="divide-y divide-slate-800 font-mono">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: ATTACK SIMULATOR -->
+        <section id="tab-simulator" class="space-y-6 hidden">
+            <div class="bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-purple-950/40 border border-cyan-800/40 rounded-xl p-6 shadow-2xl">
+                <div class="flex items-center space-x-3 mb-2">
+                    <div class="p-2 rounded bg-cyan-500/20 text-cyan-400">
+                        <i class="fa-solid fa-gamepad text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Interactive Attack Simulator & Live Pipeline Demo</h2>
+                        <p class="text-xs text-slate-300">Trigger realistic enterprise attack traces with a single click to demonstrate the end-to-end detection, alerting, and automated SOAR response.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Scenario 1: SSH Brute Force -->
+                <div class="bg-[#0d1527] border border-slate-800 hover:border-cyan-500/50 rounded-xl p-5 shadow-lg transition flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">AUTHENTICATION</span>
+                            <span class="text-xs font-mono text-slate-400">T1110.001</span>
+                        </div>
+                        <h3 class="font-bold text-white text-sm mb-1">SSH Brute Force Attack</h3>
+                        <p class="text-xs text-slate-400 mb-4">Simulates 5 rapid failed root/admin SSH authentication attempts from a known Tor exit botnet node (185.220.101.5).</p>
+                        <div class="text-[11px] text-slate-400 bg-slate-900/80 p-2.5 rounded border border-slate-800 font-mono mb-4">
+                            → Trigger: AUTH-001 (Threshold: 5)<br>
+                            → SOAR: Auto-firewall block IP
+                        </div>
+                    </div>
+                    <button onclick="runSimulation('ssh_bruteforce')" class="w-full py-2 bg-slate-800 hover:bg-cyan-600 hover:text-white text-cyan-400 font-semibold text-xs rounded-lg transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-play text-[10px]"></i>
+                        <span>Launch Scenario</span>
+                    </button>
+                </div>
+
+                <!-- Scenario 2: Obfuscated PowerShell Cradle -->
+                <div class="bg-[#0d1527] border border-slate-800 hover:border-cyan-500/50 rounded-xl p-5 shadow-lg transition flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">ENDPOINT</span>
+                            <span class="text-xs font-mono text-slate-400">T1059.001</span>
+                        </div>
+                        <h3 class="font-bold text-white text-sm mb-1">Obfuscated PowerShell Cradle</h3>
+                        <p class="text-xs text-slate-400 mb-4">Simulates in-memory execution of encoded PowerShell download cradle with hidden window switches on win-workstation.</p>
+                        <div class="text-[11px] text-slate-400 bg-slate-900/80 p-2.5 rounded border border-slate-800 font-mono mb-4">
+                            → Trigger: ENDP-001 (Critical)<br>
+                            → SOAR: Auto EDR Host Isolation
+                        </div>
+                    </div>
+                    <button onclick="runSimulation('powershell_cradle')" class="w-full py-2 bg-slate-800 hover:bg-rose-600 hover:text-white text-rose-400 font-semibold text-xs rounded-lg transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-play text-[10px]"></i>
+                        <span>Launch Scenario</span>
+                    </button>
+                </div>
+
+                <!-- Scenario 3: Mimikatz LSASS Dump -->
+                <div class="bg-[#0d1527] border border-slate-800 hover:border-cyan-500/50 rounded-xl p-5 shadow-lg transition flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">ENDPOINT / AD</span>
+                            <span class="text-xs font-mono text-slate-400">T1003.001</span>
+                        </div>
+                        <h3 class="font-bold text-white text-sm mb-1">LSASS Dumping (Mimikatz)</h3>
+                        <p class="text-xs text-slate-400 mb-4">Simulates memory credential harvesting on Tier-0 Primary Domain Controller using sekurlsa::logonpasswords.</p>
+                        <div class="text-[11px] text-slate-400 bg-slate-900/80 p-2.5 rounded border border-slate-800 font-mono mb-4">
+                            → Trigger: ENDP-002 (Critical)<br>
+                            → SOAR: Auto-Isolate DC & Alert IR
+                        </div>
+                    </div>
+                    <button onclick="runSimulation('mimikatz_dump')" class="w-full py-2 bg-slate-800 hover:bg-rose-600 hover:text-white text-rose-400 font-semibold text-xs rounded-lg transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-play text-[10px]"></i>
+                        <span>Launch Scenario</span>
+                    </button>
+                </div>
+
+                <!-- Scenario 4: Ransomware Shadow Copy Deletion -->
+                <div class="bg-[#0d1527] border border-slate-800 hover:border-cyan-500/50 rounded-xl p-5 shadow-lg transition flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">RANSOMWARE</span>
+                            <span class="text-xs font-mono text-slate-400">T1490</span>
+                        </div>
+                        <h3 class="font-bold text-white text-sm mb-1">Shadow Copies Deletion</h3>
+                        <p class="text-xs text-slate-400 mb-4">Simulates vssadmin shadow storage deletion immediately preceding enterprise ransomware encryption.</p>
+                        <div class="text-[11px] text-slate-400 bg-slate-900/80 p-2.5 rounded border border-slate-800 font-mono mb-4">
+                            → Trigger: ENDP-004 (Critical)<br>
+                            → SOAR: Emergency Host Quarantine
+                        </div>
+                    </div>
+                    <button onclick="runSimulation('ransomware_attack')" class="w-full py-2 bg-slate-800 hover:bg-rose-600 hover:text-white text-rose-400 font-semibold text-xs rounded-lg transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-play text-[10px]"></i>
+                        <span>Launch Scenario</span>
+                    </button>
+                </div>
+
+                <!-- Scenario 5: C2 Beaconing -->
+                <div class="bg-[#0d1527] border border-slate-800 hover:border-cyan-500/50 rounded-xl p-5 shadow-lg transition flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">NETWORK / C2</span>
+                            <span class="text-xs font-mono text-slate-400">T1071.001</span>
+                        </div>
+                        <h3 class="font-bold text-white text-sm mb-1">Cobalt Strike C2 Beaconing</h3>
+                        <p class="text-xs text-slate-400 mb-4">Simulates outbound HTTPS heartbeat communication to blacklisted Cobalt Strike Command & Control server.</p>
+                        <div class="text-[11px] text-slate-400 bg-slate-900/80 p-2.5 rounded border border-slate-800 font-mono mb-4">
+                            → Trigger: NETW-002 (Critical)<br>
+                            → SOAR: Edge ACL Perimeter Drop
+                        </div>
+                    </div>
+                    <button onclick="runSimulation('c2_beaconing')" class="w-full py-2 bg-slate-800 hover:bg-purple-600 hover:text-white text-purple-400 font-semibold text-xs rounded-lg transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-play text-[10px]"></i>
+                        <span>Launch Scenario</span>
+                    </button>
+                </div>
+
+                <!-- Scenario 6: Port Scan & Benign -->
+                <div class="bg-[#0d1527] border border-slate-800 hover:border-cyan-500/50 rounded-xl p-5 shadow-lg transition flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">RECON / BENIGN</span>
+                            <span class="text-xs font-mono text-slate-400">T1046</span>
+                        </div>
+                        <h3 class="font-bold text-white text-sm mb-1">Port Scan & Normal Traffic</h3>
+                        <p class="text-xs text-slate-400 mb-4">Simulates TCP SYN port scan sweep across 6 ports, or injects legitimate benign corporate user traffic.</p>
+                        <div class="text-[11px] text-slate-400 bg-slate-900/80 p-2.5 rounded border border-slate-800 font-mono mb-4">
+                            → Trigger: NETW-001 (Threshold: 5)<br>
+                            → Tests noise rejection & SIEM search
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="runSimulation('port_scan')" class="py-2 bg-slate-800 hover:bg-blue-600 hover:text-white text-blue-400 font-semibold text-xs rounded-lg transition">
+                            Port Scan
+                        </button>
+                        <button onclick="runSimulation('benign_traffic')" class="py-2 bg-slate-800 hover:bg-emerald-600 hover:text-white text-emerald-400 font-semibold text-xs rounded-lg transition">
+                            Benign Logs
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Simulator Console Output -->
+            <div class="bg-[#0d1527] border border-slate-800 rounded-xl p-5 shadow-xl font-mono text-xs">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+                    <span class="text-slate-400 flex items-center space-x-2">
+                        <i class="fa-solid fa-terminal text-cyan-400"></i>
+                        <span>Simulator Pipeline Execution Terminal</span>
+                    </span>
+                    <button onclick="clearSimConsole()" class="text-[11px] text-slate-500 hover:text-slate-300">Clear Terminal</button>
+                </div>
+                <div id="sim-console" class="h-44 overflow-y-auto space-y-1 text-slate-300 bg-slate-950 p-3 rounded border border-slate-900">
+                    <div class="text-slate-500">// Sentinel-X Attack Simulator Console initialized. Select a scenario above to test the detection pipeline.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: DETECTION RULES CATALOG -->
+        <section id="tab-rules" class="space-y-6 hidden">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-code-branch text-cyan-400"></i>
+                        <span>Sigma-Style Detection Rules Catalog</span>
+                    </h2>
+                    <p class="text-xs text-slate-400">Multi-domain YAML rules covering Authentication, Endpoint, and Network attack techniques</p>
+                </div>
+                <button onclick="reloadRules()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 border border-slate-700 flex items-center space-x-1.5 transition">
+                    <i class="fa-solid fa-rotate"></i>
+                    <span>Reload Rules from Disk</span>
+                </button>
+            </div>
+
+            <!-- Rules Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="rules-grid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- TAB 5: LIVE SIEM LOGS -->
+        <section id="tab-logs" class="space-y-6 hidden">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-list-check text-cyan-400"></i>
+                        <span>Unified Normalized Security Log Explorer</span>
+                    </h2>
+                    <p class="text-xs text-slate-400">Structured OCSF/ECS events normalized from raw Syslog, Windows EVTX, Zeek, and Web logs</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <input type="text" id="log-search-input" placeholder="Search IP, User, Process..." onkeyup="if(event.key==='Enter') loadLogs()" class="bg-slate-900 text-xs text-slate-200 border border-slate-800 rounded-lg px-3 py-2 w-56 focus:outline-none focus:border-cyan-500">
+                    <select id="log-category-filter" onchange="loadLogs()" class="bg-slate-900 text-xs text-slate-200 border border-slate-800 rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500">
+                        <option value="all">All Categories</option>
+                        <option value="authentication">Authentication</option>
+                        <option value="endpoint">Endpoint</option>
+                        <option value="network">Network</option>
+                    </select>
+                    <button onclick="loadLogs()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-[#0d1527] border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900/80 text-slate-400 font-mono uppercase text-[11px]">
+                            <tr>
+                                <th class="p-3">Timestamp</th>
+                                <th class="p-3">Source / Cat</th>
+                                <th class="p-3">Action</th>
+                                <th class="p-3">Actor / User</th>
+                                <th class="p-3">Source IP</th>
+                                <th class="p-3">Host / Target</th>
+                                <th class="p-3">Process / Cmd</th>
+                                <th class="p-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-table-body" class="divide-y divide-slate-800 font-mono">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 6: SOAR MITIGATION & CONTAINMENT -->
+        <section id="tab-soar" class="space-y-6 hidden">
+            <div>
+                <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-shield-virus text-cyan-400"></i>
+                    <span>SOAR Automated Mitigation & Containment State</span>
+                </h2>
+                <p class="text-xs text-slate-400">Active automated perimeter IP blocks, EDR host isolations, and response audit trails</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Blocked IPs -->
+                <div class="bg-[#0d1527] border border-slate-800 rounded-xl p-5 shadow-xl">
+                    <h3 class="font-bold text-white text-sm mb-3 flex items-center justify-between">
+                        <span><i class="fa-solid fa-ban text-rose-400 mr-2"></i>Active Edge Firewall Blocklist</span>
+                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-400" id="soar-blocked-count">0</span>
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-900/80 text-slate-400 font-mono text-[11px]">
+                                <tr>
+                                    <th class="p-2.5">Blocked IP</th>
+                                    <th class="p-2.5">Firewall Rule ID</th>
+                                    <th class="p-2.5">Blocked At</th>
+                                    <th class="p-2.5 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="soar-blocked-ips-table" class="divide-y divide-slate-800 font-mono">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Isolated Endpoints -->
+                <div class="bg-[#0d1527] border border-slate-800 rounded-xl p-5 shadow-xl">
+                    <h3 class="font-bold text-white text-sm mb-3 flex items-center justify-between">
+                        <span><i class="fa-solid fa-network-wired text-amber-400 mr-2"></i>EDR Isolated Endpoints</span>
+                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-400" id="soar-isolated-count">0</span>
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-900/80 text-slate-400 font-mono text-[11px]">
+                                <tr>
+                                    <th class="p-2.5">Hostname</th>
+                                    <th class="p-2.5">Status</th>
+                                    <th class="p-2.5">Timestamp</th>
+                                    <th class="p-2.5 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="soar-isolated-hosts-table" class="divide-y divide-slate-800 font-mono">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SOAR Audit Log -->
+            <div class="bg-[#0d1527] border border-slate-800 rounded-xl p-5 shadow-xl">
+                <h3 class="font-bold text-white text-sm mb-3 flex items-center space-x-2">
+                    <i class="fa-solid fa-clock text-cyan-400"></i>
+                    <span>SOAR Playbook Execution Audit History</span>
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900/80 text-slate-400 font-mono text-[11px] uppercase">
+                            <tr>
+                                <th class="p-3">Action ID</th>
+                                <th class="p-3">Playbook</th>
+                                <th class="p-3">Target</th>
+                                <th class="p-3">Associated Ticket</th>
+                                <th class="p-3">Result Message</th>
+                                <th class="p-3">Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="soar-actions-history-table" class="divide-y divide-slate-800 font-mono">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- INVESTIGATION MODAL / SLIDE-OVER -->
+    <div id="investigation-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-[#0d1527] border border-slate-700 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
+                <div class="flex items-center space-x-3">
+                    <span id="modal-incident-severity-badge" class="px-2.5 py-1 rounded text-xs font-black uppercase font-mono bg-rose-500/20 text-rose-400 border border-rose-500/30">CRITICAL</span>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-mono text-cyan-400 font-bold" id="modal-incident-id">INC-2026-XXXX</span>
+                            <span class="text-xs text-slate-400">|</span>
+                            <span class="text-sm font-bold text-white" id="modal-incident-title">Title</span>
+                        </div>
+                        <div class="text-[11px] text-slate-400" id="modal-incident-meta">Created at ...</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <select id="modal-status-select" onchange="updateModalIncidentStatus()" class="bg-slate-800 text-xs font-semibold rounded px-2.5 py-1.5 text-slate-200 border border-slate-700">
+                        <option value="open">Open</option>
+                        <option value="triaged">Triaged</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="mitigated">Mitigated</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                    <button onclick="closeInvestigationModal()" class="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+                <!-- Top Summary & MITRE Bar -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2 bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                        <div class="text-slate-400 font-semibold mb-1 uppercase tracking-wider text-[11px]">Incident Summary</div>
+                        <p class="text-slate-200 leading-relaxed" id="modal-incident-summary">Summary text</p>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2">
+                        <div class="text-slate-400 font-semibold uppercase tracking-wider text-[11px]">MITRE ATT&CK® Mapping</div>
+                        <div class="flex flex-wrap gap-1.5" id="modal-mitre-badges"></div>
+                    </div>
+                </div>
+
+                <!-- Threat Intelligence & Asset Context Widget -->
+                <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+                    <div class="text-slate-400 font-semibold uppercase tracking-wider text-[11px] mb-3 flex items-center justify-between">
+                        <span><i class="fa-solid fa-globe text-cyan-400 mr-1.5"></i>Automated Threat Intel & Asset Context Enrichment</span>
+                        <span class="font-mono text-cyan-400" id="modal-composite-score">Risk Score: 95/100</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="modal-enrichment-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Attack Timeline -->
+                <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+                    <div class="text-slate-400 font-semibold uppercase tracking-wider text-[11px] mb-3">
+                        <i class="fa-solid fa-timeline text-amber-400 mr-1.5"></i>Chronological Event Timeline
+                    </div>
+                    <div class="space-y-2 relative border-l-2 border-slate-800 ml-2 pl-4" id="modal-timeline">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Correlated Raw Evidence Table -->
+                <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+                    <div class="text-slate-400 font-semibold uppercase tracking-wider text-[11px] mb-3">
+                        <i class="fa-solid fa-file-lines text-blue-400 mr-1.5"></i>Correlated Security Evidence Logs
+                    </div>
+                    <div class="overflow-x-auto max-h-48 overflow-y-auto">
+                        <table class="w-full text-left text-[11px] text-slate-300">
+                            <thead class="bg-slate-950 text-slate-400 font-mono">
+                                <tr>
+                                    <th class="p-2">Timestamp</th>
+                                    <th class="p-2">Source</th>
+                                    <th class="p-2">Action</th>
+                                    <th class="p-2">Raw Log String</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-evidence-table" class="divide-y divide-slate-800 font-mono">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recommended Response & SOAR 1-Click Action -->
+                <div class="bg-gradient-to-r from-cyan-950/40 to-blue-950/40 p-5 rounded-xl border border-cyan-800/40 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-white text-xs flex items-center space-x-1.5">
+                            <i class="fa-solid fa-hand-holding-hand text-cyan-400"></i>
+                            <span>Recommended Response & Playbook Guidance</span>
+                        </span>
+                    </div>
+                    <p class="text-slate-300 text-xs" id="modal-recommended-response">Guidance...</p>
+                    <div class="pt-2 flex flex-wrap items-center gap-2" id="modal-soar-buttons">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Analyst Notes Section -->
+                <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800 space-y-3">
+                    <div class="text-slate-400 font-semibold uppercase tracking-wider text-[11px]">Analyst Notes & Activity Log</div>
+                    <div class="space-y-2 max-h-36 overflow-y-auto" id="modal-notes-list">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div class="flex space-x-2 pt-2 border-t border-slate-800">
+                        <input type="text" id="modal-note-input" placeholder="Type analyst investigation note..." class="bg-slate-950 text-xs text-slate-200 border border-slate-800 rounded-lg px-3 py-2 flex-1 focus:outline-none focus:border-cyan-500">
+                        <button onclick="submitModalNote()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-lg text-xs transition">
+                            Add Note
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/60 bg-[#070b14] py-3 text-center text-xs text-slate-500 font-mono">
+        Sentinel-X Enterprise SOC Detection Platform | Ingestion → Normalization → Detection Rules → SOAR Automation
+    </footer>
+
+    <!-- App Logic Script -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
